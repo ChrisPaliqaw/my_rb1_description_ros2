@@ -28,9 +28,15 @@ def generate_launch_description():
         output="screen"
     )
 
+    joint_state_publisher_gui_node = Node(
+        package='joint_state_publisher_gui',
+        executable='joint_state_publisher_gui',
+        name='joint_state_publisher_gui_node',
+        output="screen"
+    )
+
     # RVIZ Configuration
     rviz_config_dir = os.path.join(get_package_share_directory(package_description), 'rviz', 'my_rb1_description.rviz')
-
 
     rviz_node = Node(
             package='rviz2',
@@ -44,6 +50,7 @@ def generate_launch_description():
     return LaunchDescription(
         [            
             robot_state_publisher_node,
+            joint_state_publisher_gui_node,
             rviz_node
         ]
     )
