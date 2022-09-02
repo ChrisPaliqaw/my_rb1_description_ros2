@@ -245,8 +245,35 @@
     <xacro:caster side="front" />
     <xacro:caster side="back" />
 
-    <gazebo>
-        <plugin name="box_bot_joint_state" filename="libgazebo_ros_joint_state_publisher.so">
+    <ros2_control name="diff_drive" type="system">
+    
+      <hardware>
+          <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+      </hardware>
+    
+      <joint name="left_wheel_link_base_link_joint">
+        <command_interface name="velocity">
+          <param name="min">-1</param>
+          <param name="max">1</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    
+      <joint name="right_wheel_link_base_link_joint">
+        <command_interface name="velocity">
+          <param name="min">-1</param>
+          <param name="max">1</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    
+    </ros2_control>
+        <gazebo>
+        <plugin name="my_rb1_joint_state" filename="libgazebo_ros_joint_state_publisher.so">
             <ros>
                 <remapping>~/out:=joint_states</remapping>
             </ros>
@@ -256,10 +283,13 @@
         </plugin>
     </gazebo>
 
-    
-
-    <!-- TODO: Fix in my_rb1_robot.urdf, then paste over this 
-    <gazebo reference="front laser">
+    <gazebo>
+        <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+        <parameters>$(find my_rb1_description)/config/rb1_controller.yaml</parameters>
+        </plugin>
+    </gazebo>
+     
+    <gazebo reference="front_laser">
         <sensor name="sensor_ray" type="ray">
             <pose>0 0 0 0 0 0</pose>
             <ray>
@@ -288,5 +318,4 @@
             </plugin>
         </sensor>
     </gazebo>
-    -->
 </robot>

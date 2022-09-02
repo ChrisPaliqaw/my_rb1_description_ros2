@@ -2,43 +2,64 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.substitutions import Command
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch_ros.actions import Node
+import xacro
 
-# this is the function launch  system will look for
+
 def generate_launch_description():
 
-    ####### DATA INPUT ##########
-    urdf_file = 'my_rb1_robot.urdf'
-    #xacro_file = "box_bot.xacro"
-    package_description = "my_rb1_description"
+    robot_description_path = os.path.join(
+        get_package_share_directory('my_rb1_description'))
+    xacro_file = os.path.join(robot_description_path,
+                              'urdf',
+                              'my_rb1_description_ros2control.urdf')
 
-    ####### DATA INPUT END ##########
-    print("Fetching URDF ==>")
-    robot_desc_path = os.path.join(get_package_share_directory(package_description), "urdf", urdf_file)
+    doc = xacro.parse(open(xacro_file))
+    xacro.process_doc(doc)
+    robot_description_config = doc.toxml()
+    robot_description = {'robot_description': robot_description_config}
 
-    # Robot State Publisher
-
-    robot_state_publisher_node = Node(
+    node_robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
-        name='robot_state_publisher_node',
-        emulate_tty=True,
-        parameters=[{'use_sim_time': True, 'robot_description': Command(['xacro ', robot_desc_path])}],
-        output="screen"
+        output='screen',
+        parameters=[robot_description]
     )
 
-    joint_state_publisher_gui_node = Node(
-        package='joint_state_publisher_gui',
-        executable='joint_state_publisher_gui',
-        name='joint_state_publisher_gui_node',
-        output="screen"
+    spawn_entity = Node(package='gazebo_ros', executable='spawn_entity.py',
+                        arguments=['-topic', 'robot_description',
+                                   '-entity', 'robot'],
+                        output='screen')
+
+    joint_state_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner.py",
+        arguments=["joint_state_broadcaster",
+                   "--controller-manager", "/controller_manager"],
     )
 
-    # create and return launch description object
-    return LaunchDescription(
-        [            
-            robot_state_publisher_node,
-            joint_state_publisher_gui_node
-        ]
+    diff_drive_base_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner.py",
+        arguments=["diffbot_base_controller", "-c", "/controller_manager"],
     )
+
+
+    return LaunchDescription([
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=spawn_entity,
+                on_exit=[joint_state_broadcaster_spawner],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=joint_state_broadcaster_spawner,
+                on_exit=[diff_drive_base_controller_spawner],
+            )
+        ),
+        spawn_entity,
+        node_robot_state_publisher
+    ])
