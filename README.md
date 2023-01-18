@@ -55,7 +55,8 @@ Summary: 7 packages finished [10.6s]
 ...
 ```
 Note that **ROS2** still has some issues, so please check that there is no node running when you stop your launch files; otherwise, it could generate conflicts and glitches.
-in ros2 info
+
+in `ros2 info`
 ```
 ros2 node list
 ```
